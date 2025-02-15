@@ -1,8 +1,8 @@
-// src/App.tsx
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { TravelForm } from './components/TravelForm';
 import { TravelResponse } from './components/TravelResponse';
+import { FloatingChatbot } from './components/FloatingChatbot';
 import { Compass } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import type { TravelPlan, TravelResponse as TravelResponseType } from './types';
@@ -11,9 +11,17 @@ import type { TravelPlan, TravelResponse as TravelResponseType } from './types';
 const API_KEY = import.meta.env.VITE_GOOGLE_AI_API_KEY;
 const genAI = new GoogleGenerativeAI(API_KEY || '');
 
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 function App() {
   const [loading, setLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const [response, setResponse] = useState<TravelResponseType | null>(null);
+  const [travelPlan, setTravelPlan] = useState<TravelPlan | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const generatePrompt = (plan: TravelPlan) => {
     return `Act as an expert travel planner. Create a detailed travel plan for the following trip:
@@ -91,6 +99,7 @@ For each section, provide detailed information and recommendations. Include bull
   const handleSubmit = async (plan: TravelPlan) => {
     const loadingToast = toast.loading('Generating your travel plan...');
     setLoading(true);
+    setTravelPlan(plan);
     
     if (!API_KEY) {
       toast.error('Please set your Google AI API key in the environment variables (VITE_GOOGLE_AI_API_KEY)', {
@@ -105,11 +114,15 @@ For each section, provide detailed information and recommendations. Include bull
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
       const prompt = generatePrompt(plan);
       const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const apiResponse = await result.response;
+      const text = apiResponse.text();
       
       const parsedResponse = parseSections(text);
       setResponse(parsedResponse);
+      setMessages([{
+        role: 'assistant',
+        content: `Hi! I've created a detailed travel plan for your trip to ${plan.destination}. Feel free to ask me any questions about the plan!`
+      }]);
       toast.success('Travel plan generated successfully!', {
         duration: 3000
       });
@@ -126,6 +139,57 @@ For each section, provide detailed information and recommendations. Include bull
     } finally {
       setLoading(false);
       toast.dismiss(loadingToast);
+    }
+  };
+
+  const handleChatMessage = async (message: string) => {
+    if (!travelPlan || !response) return;
+
+    setChatLoading(true);
+    setMessages(prev => [...prev, { role: 'user', content: message }]);
+
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+      const prompt = `You are a helpful travel assistant. The user has the following travel plan:
+
+From: ${travelPlan.source}
+To: ${travelPlan.destination}
+Dates: ${travelPlan.startDate} to ${travelPlan.endDate}
+
+Here are the details of their travel plan:
+
+Best Travel Options:
+${response.travelOptions}
+
+Accommodation:
+${response.accommodation}
+
+Itinerary:
+${response.itinerary}
+
+Dining:
+${response.dining}
+
+Transportation:
+${response.transportation}
+
+Cost Breakdown:
+${response.costBreakdown}
+
+Their question is: ${message}
+
+Please provide a helpful, friendly response based on the above travel plan. Use markdown formatting in your response where appropriate.`;
+
+      const result = await model.generateContent(prompt);
+      const aiResponse = await result.response;
+      const text = aiResponse.text();
+
+      setMessages(prev => [...prev, { role: 'assistant', content: text }]);
+    } catch (error) {
+      console.error('Error in chat:', error);
+      toast.error('Failed to get a response. Please try again.');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -153,7 +217,7 @@ For each section, provide detailed information and recommendations. Include bull
         }}
       />
       
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <header className="text-center mb-12">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Compass className="w-12 h-12 text-blue-600" />
@@ -169,12 +233,22 @@ For each section, provide detailed information and recommendations. Include bull
         </div>
 
         {response && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Your Travel Plan</h2>
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <TravelResponse response={response} />
+          <>
+            <div className="mt-12">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Your Travel Plan</h2>
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <TravelResponse response={response} />
+              </div>
             </div>
-          </div>
+            
+            <FloatingChatbot
+              travelPlan={travelPlan}
+              travelResponse={response}
+              onSendMessage={handleChatMessage}
+              messages={messages}
+              loading={chatLoading}
+            />
+          </>
         )}
       </div>
     </div>
