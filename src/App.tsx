@@ -222,7 +222,7 @@ Please provide a helpful, friendly response based on the above travel plan. Use 
           <div className="flex items-center justify-center gap-2 mb-4">
             <Compass className="w-12 h-12 text-blue-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">AI Travel Planner</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">AI Travel Agent</h1>
           <p className="text-lg text-gray-600">
             Plan your perfect trip with our AI-powered travel assistant
           </p>

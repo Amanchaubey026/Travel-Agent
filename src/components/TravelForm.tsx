@@ -55,7 +55,7 @@ export function TravelForm({ onSubmit, loading }: TravelFormProps) {
             value={plan.source}
             onChange={e => setPlan(prev => ({ ...prev, source: e.target.value }))}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="City or Airport"
+            placeholder="City"
           />
         </div>
 
@@ -70,7 +70,7 @@ export function TravelForm({ onSubmit, loading }: TravelFormProps) {
             value={plan.destination}
             onChange={e => setPlan(prev => ({ ...prev, destination: e.target.value }))}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="City or Country"
+            placeholder="City"
           />
         </div>
 
@@ -113,7 +113,7 @@ export function TravelForm({ onSubmit, loading }: TravelFormProps) {
             value={plan.budget}
             onChange={e => setPlan(prev => ({ ...prev, budget: e.target.value }))}
             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., $1000-2000"
+            placeholder="e.g., 1000-2000"
           />
         </div>
 
